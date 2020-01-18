@@ -5,8 +5,8 @@
 
 
 // Update these with values suitable for your network.
-const char* ssid = "myywifi";
-const char* password = "xxxxxx";
+const char* ssid = "xxxxwifiname";
+const char* password = "secretpassword";
 const char* mqtt_server = "192.168.178.37";
 
 // DS-Intervall ist die Pause die der ESP im Deep Sleep bleibt. Produktion: 30 Minuten
@@ -23,7 +23,7 @@ PubSubClient client(espClient);
 ADC_MODE(ADC_VCC);
 
 void setup_wifi() {
-// Adressen statisch konfigurieren. Passend für "SENSOR04"
+// Adressen statisch konfigurieren. Passend für "Sensor04"
     IPAddress ip(192, 168, 178, 57);
     IPAddress gateway(192, 168, 178, 1);
     IPAddress subnet(255, 255, 255, 0);
@@ -49,22 +49,19 @@ void setup_wifi() {
  
 void setup()
 {
-    //Seriellen Port auf 9600 bps
-    Serial.begin(74880);
-    Serial.println("Truebner Feuchtigkeitssensor");
+  //Seriellen Port auf 9600 bps
+  Serial.begin(74880);
+  Serial.println("Truebner Feuchtigkeitssensor");
 
-    // Feuchtigkeitssensor anschalten
-    pinMode (D7, OUTPUT); // D7 ist Stromversorgung für Sensor
-    digitalWrite (D7, HIGH);
+  // Feuchtigkeitssensor anschalten
+  pinMode (D7, OUTPUT); // D7 ist Stromversorgung für Sensor
+  digitalWrite (D7, HIGH);
   int16_t adc0, adc1;
   ads.begin();
   ads.setGain(GAIN_ONE);  // 2/3x gain +/- 6.144V  1 bit = 3mV (default) 
 
-  //wlan starten
-  setup_wifi();
-
   // Temperatur und Feuchtigkeit abholen und seriell ausgeben    
-  delay(500);
+  delay(400);
   adc0 = ads.readADC_SingleEnded(0);
   adc1 = ads.readADC_SingleEnded(1);
   Serial.print("ADC0: ");
@@ -72,6 +69,19 @@ void setup()
   Serial.print("ADC1: ");
   Serial.println(adc1);
 
+  Serial.print("Time after reading sensor: ");
+  Serial.println(millis());
+
+  // turn off moisture sensor
+  digitalWrite (D7, LOW);
+
+  // turn on wifi
+  setup_wifi();
+
+  Serial.print("Time after connecting wifi: ");
+  Serial.println(millis());
+
+  
   // adc*0.125 ist die Spannung in Millivolt. *0.050/3 ergibt die volumetrische Feuchtigkeit
   float humd=float(int((adc0*0.125)*0.050/3*100+0.5))/100;
   // adc*0.125 ist die Spannung in Millivolt. (mV/1000 - 0.5)*100 ergibt die Temperatur
@@ -96,12 +106,11 @@ void setup()
       // remember: After deep sleep, the program terminates
     }
   
-    Serial.print("Time:");
-    Serial.print(millis());
     String msg="";
     char MsgFeuch[25];
     char MsgTemp[25];
     char Msgvcc[25];
+    char Msgmillis[25];
     msg=humd;
     msg.toCharArray(MsgFeuch,25);
     client.publish("Sensoren/Sensor04/Feuchtigkeit",MsgFeuch);
@@ -115,7 +124,17 @@ void setup()
     msg= ESP.getVcc();
     msg.toCharArray(Msgvcc,25);
     client.publish("Sensoren/Sensor04/Spannung",Msgvcc);
+    msg= millis();
+    msg.toCharArray(Msgmillis,25);
+    client.publish("Sensoren/Sensor04/Laufzeit",Msgmillis);
+
+    // MQTT disconnect
     client.disconnect();
+
+    Serial.print("Time after sending data: ");
+    Serial.println(millis());
+
+    
     Serial.println("300ms warten");
     delay(300);
     Serial.println("Jetzt Deep Sleep");
