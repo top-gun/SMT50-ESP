@@ -9,10 +9,10 @@ const char* ssid = "xxxxwifiname";
 const char* password = "secretpassword";
 const char* mqtt_server = "192.168.178.37";
 
-// DS-Intervall ist die Pause die der ESP im Deep Sleep bleibt. Produktion: 30 Minuten
+// DS-Intervall is the time that the processor spends in deep sleep. Default: 60 minutes
 const uint32_t DS_Intervall = 60*60*1000000;
 
-// oder für Debuggingzwecke (dann nur 3s pro Durchgang)
+// or use this for debugging purposes: 3 minutes
 //const uint32_t DS_Intervall = 3*60*1000000;
 
 Adafruit_ADS1115 ads(0x4a);     /* Use this for the 16-bit version */
@@ -23,7 +23,7 @@ PubSubClient client(espClient);
 ADC_MODE(ADC_VCC);
 
 void setup_wifi() {
-// Adressen statisch konfigurieren. Passend für "Sensor04"
+// static address configuration. You can leave these out and use DHCP by using WiFi.begin() instead of WiFi.config
     IPAddress ip(192, 168, 178, 57);
     IPAddress gateway(192, 168, 178, 1);
     IPAddress subnet(255, 255, 255, 0);
@@ -51,19 +51,20 @@ void setup()
 {
   //Seriellen Port auf 9600 bps
   Serial.begin(74880);
-  Serial.println("Truebner Feuchtigkeitssensor");
+  Serial.println("Truebner SMT50 Soil moisture sensor");
 
-  // Feuchtigkeitssensor anschalten
-  pinMode (D7, OUTPUT); // D7 ist Stromversorgung für Sensor
+  // Power up moisture sensor
+  pinMode (D7, OUTPUT); // D7 switches the relay
   digitalWrite (D7, HIGH);
   int16_t adc0, adc1;
   ads.begin();
-  ads.setGain(GAIN_ONE);  // 2/3x gain +/- 6.144V  1 bit = 3mV (default) 
+  ads.setGain(GAIN_ONE);  // 1 bit = 0.125mV in this mode
 
   // Temperatur und Feuchtigkeit abholen und seriell ausgeben    
-  delay(400);
+  delay(400); // Truebner requires 300ms before the sensor data is stable. Using 400mV to allow for tolerances.
   adc0 = ads.readADC_SingleEnded(0);
   adc1 = ads.readADC_SingleEnded(1);
+    
   Serial.print("ADC0: ");
   Serial.println(adc0);
   Serial.print("ADC1: ");
@@ -100,7 +101,7 @@ void setup()
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
-      Serial.println(" try again in 30 minutes");
+      Serial.println(" try again in an hour or so");
       ESP.deepSleep(DS_Intervall);  
       delay(100);
       // remember: After deep sleep, the program terminates
