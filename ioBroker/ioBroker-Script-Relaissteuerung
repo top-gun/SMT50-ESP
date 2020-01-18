@@ -1,0 +1,130 @@
+<xml xmlns="http://www.w3.org/1999/xhtml">
+  <block type="schedule" id="^?B:cg0,|1`~f4X1)2#o" x="38" y="13">
+    <field name="SCHEDULE">{"time":{"start":"03:30","end":"23:59","mode":"hours","interval":4},"period":{"days":1}}</field>
+    <statement name="STATEMENT">
+      <block type="controls_if" id="}ktS0_nDS+msZzEgHc^3">
+        <mutation else="1"></mutation>
+        <value name="IF0">
+          <block type="logic_compare" id="I)Iy3/KWjQZGj^Tsam!V">
+            <field name="OP">LTE</field>
+            <value name="A">
+              <block type="get_value" id="Dsuf*@fs0xuC:Dwn{;8Y">
+                <field name="ATTR">val</field>
+                <field name="OID">alias.0.Garten.Bewässerung.Bodenfeuchtigkeit</field>
+              </block>
+            </value>
+            <value name="B">
+              <block type="math_number" id="8ak:?@K1war){utKhm]*">
+                <field name="NUM">5</field>
+              </block>
+            </value>
+          </block>
+        </value>
+        <statement name="DO0">
+          <block type="control_ex" id="_g+/.U:D|jK3/1$bCH3q">
+            <field name="TYPE">false</field>
+            <field name="CLEAR_RUNNING">FALSE</field>
+            <value name="OID">
+              <shadow type="field_oid" id="sz-:Dc^+U?L$V[;z48,}">
+                <field name="oid">sonoff.0.Schuppen.POWER1</field>
+              </shadow>
+            </value>
+            <value name="VALUE">
+              <shadow type="logic_boolean" id="RyH~VO(zF@1/sx+l.Qro">
+                <field name="BOOL">TRUE</field>
+              </shadow>
+            </value>
+            <value name="DELAY_MS">
+              <shadow type="math_number" id="YK)Spx8OEx_8EZ78j8is">
+                <field name="NUM">0</field>
+              </shadow>
+            </value>
+            <next>
+              <block type="debug" id="{MCWM,CxsdP$ROjxvCKi">
+                <field name="Severity">log</field>
+                <value name="TEXT">
+                  <shadow type="text" id="#x?B8L$fh#.qjZ$G6HoE">
+                    <field name="TEXT">true</field>
+                  </shadow>
+                </value>
+              </block>
+            </next>
+          </block>
+        </statement>
+        <statement name="ELSE">
+          <block type="control_ex" id="A69/@ECyNHYYcg`_PEMp">
+            <field name="TYPE">false</field>
+            <field name="CLEAR_RUNNING">FALSE</field>
+            <value name="OID">
+              <shadow type="field_oid" id="?cK8aWE10A^anNrc6_eO">
+                <field name="oid">sonoff.0.Schuppen.POWER1</field>
+              </shadow>
+            </value>
+            <value name="VALUE">
+              <shadow type="logic_boolean" id="jp7Ev+IiO/_I1sc[l.F1">
+                <field name="BOOL">FALSE</field>
+              </shadow>
+            </value>
+            <value name="DELAY_MS">
+              <shadow type="math_number" id="!^MrQ}3*@8q519(^a@lk">
+                <field name="NUM">0</field>
+              </shadow>
+            </value>
+            <next>
+              <block type="debug" id="7L]-a}PV|(+HnO1~VQbi">
+                <field name="Severity">log</field>
+                <value name="TEXT">
+                  <shadow type="text" id="gF|]1e~oFjCE8IzNOy9F">
+                    <field name="TEXT">false</field>
+                  </shadow>
+                </value>
+              </block>
+            </next>
+          </block>
+        </statement>
+        <next>
+          <block type="controls_if" id="!A9)k+l9e4q7Nw]/f)Hb">
+            <value name="IF0">
+              <block type="logic_compare" id="trbQqG2^M8|GF7Knc#S[">
+                <field name="OP">LTE</field>
+                <value name="A">
+                  <block type="get_value" id="t-yQAvRXKIpu2p}X:,BI">
+                    <field name="ATTR">val</field>
+                    <field name="OID">mqtt.0.Sensoren.Sensor04.Spannung</field>
+                  </block>
+                </value>
+                <value name="B">
+                  <block type="math_number" id="3m/0jn#}]04(;4,z:]5?">
+                    <field name="NUM">2800</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <statement name="DO0">
+              <block type="email" id="M=7lw.Bg}(|n;01,^Ld%">
+                <field name="INSTANCE"></field>
+                <field name="IS_HTML">FALSE</field>
+                <field name="LOG">warn</field>
+                <value name="TO">
+                  <shadow type="text" id="3nmmfH%E58;U~ulQi!Tb">
+                    <field name="TEXT">detlev.rackow@googlemail.com</field>
+                  </shadow>
+                </value>
+                <value name="TEXT">
+                  <shadow type="text" id="7~Bf=~st`PzUVS(k2RjE">
+                    <field name="TEXT">Sensor 04 - Bodenfeuchte meldet geringe Batteriespannung</field>
+                  </shadow>
+                </value>
+                <value name="SUBJECT">
+                  <shadow type="text" id="(=2c/WH_BKs6ftLSSi8s">
+                    <field name="TEXT">Batterie Bodenfeuchtesensor</field>
+                  </shadow>
+                </value>
+              </block>
+            </statement>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+</xml>
