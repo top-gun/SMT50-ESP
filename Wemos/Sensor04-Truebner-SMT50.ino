@@ -9,8 +9,10 @@ const char* ssid = "xxxxwifiname";
 const char* password = "secretpassword";
 const char* mqtt_server = "192.168.178.37";
 
-// DS-Intervall is the time that the processor spends in deep sleep. Default: 60 minutes
-const uint32_t DS_Intervall = 60*60*1000000;
+// DS-Intervall is one minute in Mikroseconds, needed for the calculation of the Deep Sleep between measurements
+const uint32_t DS_Intervall = 60*1000000;
+// Minuten is the Deep Sleep-time between measurements
+uint32_t Minuten = 30;
 
 // or use this for debugging purposes: 3 minutes
 //const uint32_t DS_Intervall = 3*60*1000000;
@@ -29,7 +31,9 @@ void setup_wifi() {
     IPAddress subnet(255, 255, 255, 0);
     IPAddress dns(192, 168, 178, 1);
 
-    WiFi.config(ip, dns, gateway, subnet);
+// Use Wifi.config to manually configure the network. Use Wifi.begin() for DHCP-controlled network.
+//    WiFi.config(ip, dns, gateway, subnet);
+    Wifi.begin();
     
   // We start by connecting to a WiFi network
     Serial.print("Connecting to ");
@@ -45,11 +49,32 @@ void setup_wifi() {
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
-}
- 
+} // end of setup_wifi
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+  String payloadname = String((char*)topic);
+  if (payloadname == "Sensoren/Sensor04/Intervall") {
+    payload[length] = '\0';
+    String s = String((char*)payload);
+    Minuten = s.toInt();
+    if (Minuten == 0) {
+      Minuten = 30; 
+    }
+    Serial.println(Minuten);
+  }
+
+} // end of callback
+
+
 void setup()
 {
-  //Seriellen Port auf 9600 bps
   Serial.begin(74880);
   Serial.println("Truebner SMT50 Soil moisture sensor");
 
@@ -82,65 +107,85 @@ void setup()
   Serial.print("Time after connecting wifi: ");
   Serial.println(millis());
 
-  
+  // convert sensor data and send it to server 
   // adc*0.125 ist die Spannung in Millivolt. *0.050/3 ergibt die volumetrische Feuchtigkeit
+
   float humd=float(int((adc0*0.125)*0.050/3*100+0.5))/100;
+ 
   // adc*0.125 ist die Spannung in Millivolt. (mV/1000 - 0.5)*100 ergibt die Temperatur
   
-    float temp=adc1*0.125; // Sensor in millivolt
-    temp=(temp/1000-0.5)*100;  // Millivolt in Temperatur
-    temp=float( int(temp*10+0.5)) /10;
-    //mqtt Server ansprechen
-    client.setServer(mqtt_server, 1883);
-    Serial.print("Attempting MQTT connection...");
-    String clientId = "Sensor04";
-    // Attempt to connect
-    if (client.connect(clientId.c_str()))
-    {
-      Serial.println("connected");
-    } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in an hour or so");
-      ESP.deepSleep(DS_Intervall);  
-      delay(100);
-      // remember: After deep sleep, the program terminates
-    }
+  float temp=adc1*0.125; // Sensor in millivolt
+  temp=(temp/1000-0.5)*100;  // Millivolt in Temperatur
+  temp=float( int(temp*10+0.5)) /10;
+
+  //mqtt Server ansprechen
   
-    String msg="";
-    char MsgFeuch[25];
-    char MsgTemp[25];
-    char Msgvcc[25];
-    char Msgmillis[25];
-    msg=humd;
-    msg.toCharArray(MsgFeuch,25);
-    client.publish("Sensoren/Sensor04/Feuchtigkeit",MsgFeuch);
-    Serial.print("Feuchtigkeit an MQTT: ");
-    Serial.println(MsgFeuch);
-    msg=temp;
-    msg.toCharArray(MsgTemp,25);
-    client.publish("Sensoren/Sensor04/Temperatur",MsgTemp);
-    Serial.print("Temperatur an MQTT: ");
-    Serial.println(MsgTemp);
-    msg= ESP.getVcc();
-    msg.toCharArray(Msgvcc,25);
-    client.publish("Sensoren/Sensor04/Spannung",Msgvcc);
-    msg= millis();
-    msg.toCharArray(Msgmillis,25);
-    client.publish("Sensoren/Sensor04/Laufzeit",Msgmillis);
-
-    // MQTT disconnect
-    client.disconnect();
-
-    Serial.print("Time after sending data: ");
-    Serial.println(millis());
-
-    
-    Serial.println("300ms warten");
-    delay(300);
-    Serial.println("Jetzt Deep Sleep");
+  client.setServer(mqtt_server, 1883);
+  Serial.print("Attempting MQTT connection...");
+  String clientId = "Sensor04";
+  
+  // Attempt to connect
+  if (client.connect(clientId.c_str()))
+  {
+    Serial.println("connected");
+  } else {
+    Serial.print("failed, rc=");
+    Serial.print(client.state());
+    Serial.println(" try again in an hour or so");
     ESP.deepSleep(DS_Intervall);  
     delay(100);
+  // remember: After deep sleep, the program terminates
+  }
+  
+  String msg="";
+  char MsgFeuch[25];
+  char MsgTemp[25];
+  char Msgvcc[25];
+  char Msgmillis[25];
+
+  msg=humd;
+  msg.toCharArray(MsgFeuch,25);
+  client.publish("Sensoren/Sensor04/Feuchtigkeit",MsgFeuch);
+  Serial.print("Feuchtigkeit an MQTT: ");
+  Serial.println(MsgFeuch);
+  
+  msg=temp;
+  msg.toCharArray(MsgTemp,25);
+  client.publish("Sensoren/Sensor04/Temperatur",MsgTemp);
+  Serial.print("Temperatur an MQTT: ");
+  Serial.println(MsgTemp);
+  
+  msg= ESP.getVcc();
+  msg.toCharArray(Msgvcc,25);
+  client.publish("Sensoren/Sensor04/Spannung",Msgvcc);
+  
+  msg= millis();
+  msg.toCharArray(Msgmillis,25);
+  client.publish("Sensoren/Sensor04/Laufzeit",Msgmillis);
+
+  // MQTT disconnect
+  client.disconnect();
+
+  Serial.print("Time after sending data: ");
+  Serial.println(millis());
+
+    
+  Serial.println("300ms warten");
+  delay(300);
+    
+  //hope for MQTT-callback
+
+  client.loop();
+  // MQTT disconnect
+  client.disconnect();  
+  delay(100);
+
+  Serial.print(".");
+  Serial.print("Jetzt Deep Sleep ");
+  Serial.print(Minuten);
+//    delay(100);
+  ESP.deepSleep(Minuten * DS_Intervall);  
+  delay(100);
 }
 
 void loop()
