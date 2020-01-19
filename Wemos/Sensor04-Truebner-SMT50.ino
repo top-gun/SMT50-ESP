@@ -17,34 +17,38 @@ uint32_t Minuten = 30;
 // or use this for debugging purposes: 3 minutes
 //const uint32_t DS_Intervall = 3*60*1000000;
 
+//  define object for the handling of the ADC-chip
 Adafruit_ADS1115 ads(0x4a);     /* Use this for the 16-bit version */
 
+// define object for the WiFi-communication
 WiFiClient espClient;
+
+// define object for MQTT-communication to the server
 PubSubClient client(espClient);
 
+// configure the internal ADC to monitor the 3.3V-powersupport
 ADC_MODE(ADC_VCC);
 
 void setup_wifi() {
 // static address configuration. You can leave these out and use DHCP by using WiFi.begin() instead of WiFi.config
-    IPAddress ip(192, 168, 178, 57);
-    IPAddress gateway(192, 168, 178, 1);
-    IPAddress subnet(255, 255, 255, 0);
-    IPAddress dns(192, 168, 178, 1);
+//  IPAddress ip(192, 168, 178, 57);
+//  IPAddress gateway(192, 168, 178, 1);
+//  IPAddress subnet(255, 255, 255, 0);
+//  IPAddress dns(192, 168, 178, 1);
 
 // Use Wifi.config to manually configure the network. Use Wifi.begin() for DHCP-controlled network.
 //    WiFi.config(ip, dns, gateway, subnet);
-    Wifi.begin();
+  Wifi.begin();
     
-  // We start by connecting to a WiFi network
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) 
-    {
-      delay(500);
-      Serial.print(".");
-    }
-  randomSeed(micros());
+// We start by connecting to a WiFi network
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) 
+  {
+    delay(500);
+    Serial.print(".");
+  }
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
@@ -52,6 +56,7 @@ void setup_wifi() {
 } // end of setup_wifi
 
 void callback(char* topic, byte* payload, unsigned int length) {
+
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
@@ -108,11 +113,11 @@ void setup()
   Serial.println(millis());
 
   // convert sensor data and send it to server 
-  // adc*0.125 ist die Spannung in Millivolt. *0.050/3 ergibt die volumetrische Feuchtigkeit
+  // adc*0.125 is the signal voltage in millivolt. *0.050/3 is the conversion formula to volumetric humidity
 
   float humd=float(int((adc0*0.125)*0.050/3*100+0.5))/100;
  
-  // adc*0.125 ist die Spannung in Millivolt. (mV/1000 - 0.5)*100 ergibt die Temperatur
+  // adc*0.125 is the signal voltage in millivolt. (mV/1000 - 0.5)*100 is the formula to calculate the temperature
   
   float temp=adc1*0.125; // Sensor in millivolt
   temp=(temp/1000-0.5)*100;  // Millivolt in Temperatur
@@ -131,12 +136,12 @@ void setup()
   } else {
     Serial.print("failed, rc=");
     Serial.print(client.state());
-    Serial.println(" try again in an hour or so");
-    ESP.deepSleep(DS_Intervall);  
+    Serial.println(" try again in 5 minutes");
+    ESP.deepSleep(5 * DS_Intervall);  
     delay(100);
   // remember: After deep sleep, the program terminates
   }
-  
+// send data to the server via MQTT  
   String msg="";
   char MsgFeuch[25];
   char MsgTemp[25];
@@ -170,20 +175,21 @@ void setup()
   Serial.println(millis());
 
     
-  Serial.println("300ms warten");
+  Serial.println("300ms pause to make sure the server has responded to MQTT subscription");
   delay(300);
     
   //hope for MQTT-callback
 
   client.loop();
-  // MQTT disconnect
-  client.disconnect();  
-  delay(100);
 
+// MQTT disconnect
+  client.disconnect();  
+
+// no wait because we have 100ms further down
   Serial.print(".");
   Serial.print("Jetzt Deep Sleep ");
   Serial.print(Minuten);
-//    delay(100);
+  delay(100);
   ESP.deepSleep(Minuten * DS_Intervall);  
   delay(100);
 }
