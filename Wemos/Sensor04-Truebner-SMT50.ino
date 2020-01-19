@@ -3,7 +3,6 @@
 #include <PubSubClient.h>
 #include <Adafruit_ADS1015.h>
 
-
 // Update these with values suitable for your network.
 const char* ssid = "xxxxwifiname";
 const char* password = "secretpassword";
