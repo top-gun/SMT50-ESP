@@ -38,7 +38,7 @@ void setup_wifi() {
 
 // Use Wifi.config to manually configure the network. Use Wifi.begin() for DHCP-controlled network.
 //    WiFi.config(ip, dns, gateway, subnet);
-  Wifi.begin();
+  WiFi.begin();
     
 // We start by connecting to a WiFi network
   Serial.print("Connecting to ");
@@ -65,7 +65,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
   Serial.println();
   String payloadname = String((char*)topic);
-  if (payloadname == "Sensoren/Sensor04/Intervall") {
+  if (payloadname == "Sensoren/Sensor03/Intervall") {
     payload[length] = '\0';
     String s = String((char*)payload);
     Minuten = s.toInt();
@@ -127,7 +127,7 @@ void setup()
   
   client.setServer(mqtt_server, 1883);
   Serial.print("Attempting MQTT connection...");
-  String clientId = "Sensor04";
+  String clientId = "Sensor03";
   
   // Attempt to connect
   if (client.connect(clientId.c_str()))
@@ -150,30 +150,30 @@ void setup()
 
   msg=humd;
   msg.toCharArray(MsgFeuch,25);
-  client.publish("Sensoren/Sensor04/Feuchtigkeit",MsgFeuch);
+  client.publish("Sensoren/Sensor03/Feuchtigkeit",MsgFeuch);
   Serial.print("Feuchtigkeit an MQTT: ");
   Serial.println(MsgFeuch);
   
   msg=temp;
   msg.toCharArray(MsgTemp,25);
-  client.publish("Sensoren/Sensor04/Temperatur",MsgTemp);
+  client.publish("Sensoren/Sensor03/Temperatur",MsgTemp);
   Serial.print("Temperatur an MQTT: ");
   Serial.println(MsgTemp);
   
   msg= ESP.getVcc();
   msg.toCharArray(Msgvcc,25);
-  client.publish("Sensoren/Sensor04/Spannung",Msgvcc);
+  client.publish("Sensoren/Sensor03/Spannung",Msgvcc);
   
   msg= millis();
   msg.toCharArray(Msgmillis,25);
-  client.publish("Sensoren/Sensor04/Laufzeit",Msgmillis);
+  client.publish("Sensoren/Sensor03/Laufzeit",Msgmillis);
 
-  // MQTT disconnect
-  client.disconnect();
+// set callback for MQTT
+  client.setCallback(callback); 
+  client.subscribe("Sensoren/Sensor03/Intervall",1);
 
   Serial.print("Time after sending data: ");
   Serial.println(millis());
-
     
   Serial.println("300ms pause to make sure the server has responded to MQTT subscription");
   delay(300);
