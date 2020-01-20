@@ -12,7 +12,11 @@ The Wemos D1 will supply one reading of both moisture and temperature, then swit
 For further documentation look at the "Documentation"-folder:
 
 documentation/architecture is a diagram of the information-flow
+
 documentation/parts-list-Teileliste is a text document with all used parts and links to potential sources
+
 documentation/truebner-smt50.png shows sampled data as a flot-diagram (ioBroker)
+
 documentation/Bodensensor-offen.jpg shows the assembled sensor device
+
 documentation/Sensor-Schaltbild.png shows the wiring in the sender case.
