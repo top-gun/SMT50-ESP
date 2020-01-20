@@ -17,12 +17,12 @@ Teileliste:
 8.) Montagematerial: Platinen, Schraubklemmen, Chipfassungen: 9,99 Euro - https://smile.amazon.de/gp/product/B0728HZHTR/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1​
 
 
-Zur Schaltung des Wemos und zur Programmerstellung hilft der Artikel:
+The sender unit is basically a Wemos D1 Mini with a separate 4-channel-ADC ADS1115, and based on a design which I found here:
 
 http://www.esp8266learning.com/ads1115-analog-to-digital-converter-and-esp8266.php​
 
-Relais:
+9.) Relay (wifi-controlled), either:
 
-Sonoff 4CH Pro R2 mit Tasmota-Software. MQTT an den ioBroker konfiguriert mit Port 1885 (spezieller Port, da Sonoff einen eigenen MQTT-Server mitbringt)
+- Sonoff 4CH Pro R2, flashed with Tasmota-firmware. The ioBroker has a special adapter for Tasmota. Basically, any MQTT-broker should work just fine with Tasmota.
 
-Alternativ kann ein Shelly 1-Relais eingesetzt werden. ioBroker bietet einen Adapter, um Shelly ohne Umbauten oder Umflashen zu steuern.
+-  Shelly 1: This is a 1-channel-wifi-relay that can be controlled via MQTT or webservice. ioBroker has a special Shelly-adapter, too, to make integration more seamless.
