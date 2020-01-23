@@ -191,7 +191,7 @@ void setup()
   Serial.print(".");
   Serial.print("Jetzt Deep Sleep ");
   Serial.print(Minuten);
-  delay(100);
+  delay(10);
   ESP.deepSleep(Minuten * DS_Intervall);  
   delay(100);
 }
