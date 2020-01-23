@@ -71,6 +71,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
     if (Minuten == 0) {
       Minuten = 30; 
     }
+    if (Minuten > 60) {
+      Minuten = 60; 
+    }
     Serial.println(Minuten);
   }
 
