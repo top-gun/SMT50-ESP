@@ -17,7 +17,7 @@ uint32_t Minuten = 30;
 //const uint32_t DS_Intervall = 3*60*1000000;
 
 //  define object for the handling of the ADC-chip
-Adafruit_ADS1115 ads(0x4a);     /* Use this for the 16-bit version */
+Adafruit_ADS1115 ads(0x4a);     // Use this for the 16-bit version
 
 // define object for the WiFi-communication
 WiFiClient espClient;
