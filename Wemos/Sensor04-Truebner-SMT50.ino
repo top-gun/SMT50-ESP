@@ -4,14 +4,23 @@
 #include <Adafruit_ADS1015.h>
 
 // Update these with values suitable for your network.
-const char* ssid = "xxxxwifiname";
-const char* password = "secretpassword";
+const char* ssid = "xxxxxx";
+const char* password = "yyyyyyyy";
 const char* mqtt_server = "192.168.178.37";
 
 // DS-Intervall is one minute in Mikroseconds, needed for the calculation of the Deep Sleep between measurements
 const uint32_t DS_Intervall = 60*1000000;
 // Minuten is the Deep Sleep-time between measurements
 uint32_t Minuten = 30;
+
+// The ESP8266 RTC memory is arranged into blocks of 4 bytes. The access methods read and write 4 bytes at a time,
+// so the RTC data structure should be padded to a 4-byte multiple.
+struct {
+  uint32_t crc32;   // 4 bytes
+  uint8_t channel;  // 1 byte,   5 in total
+  uint8_t bssid[6]; // 6 bytes, 11 in total
+  uint8_t padding;  // 1 byte,  12 in total
+} rtcData;
 
 // or use this for debugging purposes: 3 minutes
 //const uint32_t DS_Intervall = 3*60*1000000;
@@ -29,29 +38,87 @@ PubSubClient client(espClient);
 ADC_MODE(ADC_VCC);
 
 void setup_wifi() {
+// Use Wifi.config to manually configure the network. 
 // static address configuration. You can leave these out and use DHCP by using WiFi.begin() instead of WiFi.config
-//  IPAddress ip(192, 168, 178, 57);
+//  IPAddress ip(192, 168, 178, 60);
 //  IPAddress gateway(192, 168, 178, 1);
 //  IPAddress subnet(255, 255, 255, 0);
 //  IPAddress dns(192, 168, 178, 1);
+//  WiFi.config(ip, dns, gateway, subnet);
 
-// Use Wifi.config to manually configure the network. Use Wifi.begin() for DHCP-controlled network.
-//    WiFi.config(ip, dns, gateway, subnet);
-  WiFi.begin();
-    
+// Try to read WiFi settings from RTC memory
+  bool rtcValid = false;
+  if( ESP.rtcUserMemoryRead( 0, (uint32_t*)&rtcData, sizeof( rtcData ) ) ) {
+  // Calculate the CRC of what we just read from RTC memory, but skip the first 4 bytes as that's the checksum itself.
+    uint32_t crc = calculateCRC32( ((uint8_t*)&rtcData) + 4, sizeof( rtcData ) - 4 );
+    if( crc == rtcData.crc32 ) {
+      rtcValid = true;
+    }
+  }
+
+// Disable the WiFi persistence.  The ESP8266 will not load and save WiFi settings in the flash memory.
+  WiFi.persistent( false );
+
 // We start by connecting to a WiFi network
   Serial.print("Connecting to ");
   Serial.println(ssid);
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) 
-  {
-    delay(500);
-    Serial.print(".");
+  if( rtcValid ) {
+    // The RTC data was good, make a quick connection
+    Serial.println("connecting with data from rtc memory");
+    WiFi.begin(ssid,password, rtcData.channel, rtcData.bssid, true );
   }
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  else {
+    // The RTC data was not valid, so make a regular connection
+    Serial.println("connecting fresh, just SSID and password");
+    WiFi.begin(ssid,password);
+  }
+
+
+  int retries = 0;
+  int wifiStatus = WiFi.status();
+  while( wifiStatus != WL_CONNECTED ) {
+    retries++;
+    if( retries == 100 ) {
+      // Quick connect is not working, reset WiFi and try regular connection
+      Serial.println("Changing strategy, attemting fresh connection");
+      WiFi.disconnect();
+      delay( 10 );
+      WiFi.forceSleepBegin();
+      delay( 10 );
+      WiFi.forceSleepWake();
+      delay( 10 );
+      WiFi.begin(ssid,password);
+    }
+    if( retries == 600 ) {
+      // Giving up after 30 seconds and going back to sleep
+      Serial.println("Giving up after 30 seconds without success");
+      WiFi.disconnect( true );
+      delay( 1 );
+      WiFi.mode( WIFI_OFF );
+      ESP.deepSleep( Minuten * DS_Intervall, WAKE_RF_DISABLED );
+      return; // Not expecting this to be called, the previous call will never return.
+    }
+    delay( 50 );
+    wifiStatus = WiFi.status();
+  }
+//  while (WiFi.status() != WL_CONNECTED) 
+//  {
+//    delay(500);
+//    Serial.print(".");
+//  }
+//  Serial.println("");
+//  Serial.println("WiFi connected");
+//  Serial.println("IP address: ");
+//  Serial.println(WiFi.localIP());
+//  uint8_t macAddr[6];
+//  WiFi.macAddress(macAddr);
+//  Serial.printf("mac address: %02x:%02x:%02x:%02x:%02x:%02x:\n",macAddr[0],macAddr[1],macAddr[2],macAddr[3],macAddr[4],macAddr[5]);
+  // Write current connection info back to RTC
+  rtcData.channel = WiFi.channel();
+  memcpy( rtcData.bssid, WiFi.BSSID(), 6 ); // Copy 6 bytes of BSSID (AP's MAC address)
+  rtcData.crc32 = calculateCRC32( ((uint8_t*)&rtcData) + 4, sizeof( rtcData ) - 4 );
+  ESP.rtcUserMemoryWrite( 0, (uint32_t*)&rtcData, sizeof( rtcData ) );
+
 } // end of setup_wifi
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -79,6 +146,25 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 } // end of callback
 
+uint32_t calculateCRC32( const uint8_t *data, size_t length ) {
+  uint32_t crc = 0xffffffff;
+  while( length-- ) {
+    uint8_t c = *data++;
+    for( uint32_t i = 0x80; i > 0; i >>= 1 ) {
+      bool bit = crc & 0x80000000;
+      if( c & i ) {
+        bit = !bit;
+      }
+
+      crc <<= 1;
+      if( bit ) {
+        crc ^= 0x04c11db7;
+      }
+    }
+  }
+
+  return crc;
+}
 
 void setup()
 {
