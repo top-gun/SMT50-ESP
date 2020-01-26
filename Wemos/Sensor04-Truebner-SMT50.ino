@@ -38,13 +38,14 @@ PubSubClient client(espClient);
 ADC_MODE(ADC_VCC);
 
 void setup_wifi() {
+
 // Use Wifi.config to manually configure the network. 
 // static address configuration. You can leave these out and use DHCP by using WiFi.begin() instead of WiFi.config
-//  IPAddress ip(192, 168, 178, 60);
-//  IPAddress gateway(192, 168, 178, 1);
-//  IPAddress subnet(255, 255, 255, 0);
-//  IPAddress dns(192, 168, 178, 1);
-//  WiFi.config(ip, dns, gateway, subnet);
+  IPAddress ip(192, 168, 178, 57);
+  IPAddress gateway(192, 168, 178, 1);
+  IPAddress subnet(255, 255, 255, 0);
+  IPAddress dns(192, 168, 178, 1);
+  WiFi.config(ip, dns, gateway, subnet);
 
 // Try to read WiFi settings from RTC memory
   bool rtcValid = false;
@@ -56,8 +57,11 @@ void setup_wifi() {
     }
   }
 
-// Disable the WiFi persistence.  The ESP8266 will not load and save WiFi settings in the flash memory.
-  WiFi.persistent( false );
+
+// Bring up the WiFi connection
+  WiFi.forceSleepWake();
+  delay( 1 );
+  WiFi.mode( WIFI_STA );
 
 // We start by connecting to a WiFi network
   Serial.print("Connecting to ");
@@ -101,11 +105,6 @@ void setup_wifi() {
     delay( 50 );
     wifiStatus = WiFi.status();
   }
-//  while (WiFi.status() != WL_CONNECTED) 
-//  {
-//    delay(500);
-//    Serial.print(".");
-//  }
 //  Serial.println("");
 //  Serial.println("WiFi connected");
 //  Serial.println("IP address: ");
@@ -129,7 +128,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
   for (int i = 0; i < length; i++) {
     Serial.print((char)payload[i]);
   }
-  Serial.println();
   String payloadname = String((char*)topic);
   if (payloadname == "Sensoren/Sensor03/Intervall") {
     payload[length] = '\0';
@@ -168,6 +166,14 @@ uint32_t calculateCRC32( const uint8_t *data, size_t length ) {
 
 void setup()
 {
+// turn off wifi to conserve power  
+  WiFi.mode( WIFI_OFF );
+  WiFi.forceSleepBegin();
+  delay( 1 );
+
+// Disable the WiFi persistence.  The ESP8266 will not load and save WiFi settings in the flash memory.
+  WiFi.persistent( false );
+  delay(1);  
   Serial.begin(74880);
   Serial.println("Truebner SMT50 Soil moisture sensor");
 
@@ -266,8 +272,7 @@ void setup()
   Serial.println("300ms pause to make sure the server has responded to MQTT subscription");
   delay(300);
     
-  //hope for MQTT-callback
-
+//hope for MQTT-callback
   client.loop();
 
 // MQTT disconnect
@@ -277,8 +282,9 @@ void setup()
   Serial.print(".");
   Serial.print("Jetzt Deep Sleep ");
   Serial.print(Minuten);
-  delay(10);
-  ESP.deepSleep(Minuten * DS_Intervall);  
+  WiFi.disconnect( true );
+  delay( 10 );
+  ESP.deepSleep(Minuten * DS_Intervall, WAKE_RF_DISABLED);  
   delay(100);
 }
 
