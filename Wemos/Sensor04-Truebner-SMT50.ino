@@ -44,8 +44,14 @@ void setup_wifi() {
   IPAddress ip(192, 168, 178, 57);
   IPAddress gateway(192, 168, 178, 1);
   IPAddress subnet(255, 255, 255, 0);
-  IPAddress dns(192, 168, 178, 1);
-  WiFi.config(ip, dns, gateway, subnet);
+  //IPAddress dns(192, 168, 178, 1);
+  WiFi.config(ip, gateway, subnet);  // we work locally and don't need DNS
+  //WiFi.config(ip, dns, gateway, subnet); // use this in case you use an external MQTT-service
+
+// Bring up the WiFi connection
+  WiFi.forceSleepWake();
+  delay( 1 );
+  WiFi.mode( WIFI_STA );
 
 // Try to read WiFi settings from RTC memory
   bool rtcValid = false;
@@ -56,12 +62,6 @@ void setup_wifi() {
       rtcValid = true;
     }
   }
-
-
-// Bring up the WiFi connection
-  WiFi.forceSleepWake();
-  delay( 1 );
-  WiFi.mode( WIFI_STA );
 
 // We start by connecting to a WiFi network
   Serial.print("Connecting to ");
