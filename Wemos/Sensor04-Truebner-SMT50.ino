@@ -105,14 +105,10 @@ void setup_wifi() {
     delay( 50 );
     wifiStatus = WiFi.status();
   }
-//  Serial.println("");
-//  Serial.println("WiFi connected");
-//  Serial.println("IP address: ");
-//  Serial.println(WiFi.localIP());
-//  uint8_t macAddr[6];
-//  WiFi.macAddress(macAddr);
-//  Serial.printf("mac address: %02x:%02x:%02x:%02x:%02x:%02x:\n",macAddr[0],macAddr[1],macAddr[2],macAddr[3],macAddr[4],macAddr[5]);
-  // Write current connection info back to RTC
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
   rtcData.channel = WiFi.channel();
   memcpy( rtcData.bssid, WiFi.BSSID(), 6 ); // Copy 6 bytes of BSSID (AP's MAC address)
   rtcData.crc32 = calculateCRC32( ((uint8_t*)&rtcData) + 4, sizeof( rtcData ) - 4 );
@@ -166,14 +162,15 @@ uint32_t calculateCRC32( const uint8_t *data, size_t length ) {
 
 void setup()
 {
+// Disable the WiFi persistence.  The ESP8266 will not load and save WiFi settings in the flash memory.
+  WiFi.persistent( false );
+  delay(1);  
+
 // turn off wifi to conserve power  
   WiFi.mode( WIFI_OFF );
   WiFi.forceSleepBegin();
   delay( 1 );
 
-// Disable the WiFi persistence.  The ESP8266 will not load and save WiFi settings in the flash memory.
-  WiFi.persistent( false );
-  delay(1);  
   Serial.begin(74880);
   Serial.println("Truebner SMT50 Soil moisture sensor");
 
